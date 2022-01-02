@@ -1,0 +1,12 @@
+#Dataset
+data/VOCdevkit
+data/VOCdevkit-fog
+data/VOCdevkit-dark
+data/gdataset
+data/ExDark
+data/RTTS
+
+#checkpoint
+experiments/exp_101/checkpoint/*
+experiments/exp_101/detection_results/*.jpg
+experiments_lowlight/exp_58/checkpoint/*
