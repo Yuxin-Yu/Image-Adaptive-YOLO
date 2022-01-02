@@ -1,0 +1,6 @@
+person 118 202 231 351
+motorcycle 78 243 236 371
+bus 2 90 251 284
+person 401 53 451 180
+person 470 97 538 249
+person 510 166 620 368

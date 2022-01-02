@@ -1,0 +1,8 @@
+person 107 36 169 204
+person 96 67 111 105
+person 33 66 58 113
+person 20 72 34 97
+bicycle 37 84 57 120
+motorcycle 21 81 34 100
+bus 37 62 75 95
+car 254 73 300 103

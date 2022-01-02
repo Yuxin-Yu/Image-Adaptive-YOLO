@@ -1,0 +1,5 @@
+person 609 213 726 485
+person 746 216 859 520
+motorbike 62 346 654 725
+motorbike 323 240 621 421
+chair 830 315 932 512

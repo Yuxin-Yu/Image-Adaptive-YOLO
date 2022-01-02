@@ -1,0 +1,3 @@
+person 231 333 304 475
+motorcycle 233 383 315 521
+person 69 356 143 478

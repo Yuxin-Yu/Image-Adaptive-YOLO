@@ -1,0 +1,6 @@
+person 318 85 589 533
+person 182 118 520 533
+bicycle 292 323 602 533
+motorcycle 19 311 552 533
+motorcycle 1 280 157 533
+car 349 29 602 205

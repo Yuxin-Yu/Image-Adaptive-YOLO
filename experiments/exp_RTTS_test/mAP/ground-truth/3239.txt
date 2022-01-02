@@ -1,0 +1,8 @@
+person 276 224 305 266
+person 339 188 377 257
+motorcycle 337 204 380 266
+car 165 212 263 266
+person 130 173 175 256
+motorcycle 129 193 176 269
+person 48 185 79 257
+motorcycle 44 196 88 264

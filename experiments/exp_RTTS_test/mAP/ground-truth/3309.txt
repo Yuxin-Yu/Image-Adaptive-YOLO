@@ -1,0 +1,4 @@
+person 219 108 301 241
+motorcycle 218 152 300 262
+person 167 76 281 258
+motorcycle 176 141 280 315

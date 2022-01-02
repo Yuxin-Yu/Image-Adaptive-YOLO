@@ -1,0 +1,4 @@
+person 398 374 445 471
+motorcycle 397 411 463 475
+person 45 378 83 481
+bicycle 43 411 84 482

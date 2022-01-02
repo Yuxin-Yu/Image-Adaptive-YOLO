@@ -1,0 +1,3 @@
+person 342 60 493 258
+person 294 156 343 230
+motorcycle 306 194 342 235

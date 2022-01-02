@@ -1,0 +1,8 @@
+chair 236 114 275 167
+chair 291 116 343 182
+bicycle 387 127 500 215
+motorbike 19 117 171 204
+motorbike 74 139 251 259
+motorbike 142 154 313 285
+motorbike 212 166 376 315
+motorbike 252 196 449 354
