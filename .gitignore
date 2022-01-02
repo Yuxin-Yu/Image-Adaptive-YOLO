@@ -8,5 +8,5 @@ data/RTTS
 
 #checkpoint
 experiments/exp_101/checkpoint/*
-experiments/exp_101/detection_results/*.jpg
+experiments/exp_101/detection_results/*
 experiments_lowlight/exp_58/checkpoint/*

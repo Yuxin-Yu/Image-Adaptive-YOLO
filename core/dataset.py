@@ -176,8 +176,8 @@ class Dataset(object):
         bboxes = np.array([list(map(lambda x: int(float(x)), box.split(','))) for box in line[1:]])
         #  Each image has a probability of 2/3 to be randomly added with some kind of fog
         if random.randint(0, 2) > 0:
-            beta = random.randint(0, 9)
-            beta = 0.01 * beta + 0.05
+            beta = random.randint(0, 1)
+            beta = 0.07 * beta + 0.07
             # load voc_foggy_synthetic image offline (The synthesized code is ./core/data_make.py)
             if self.data_train_flag:
                 img_name = args.vocfog_traindata_dir + image_name \

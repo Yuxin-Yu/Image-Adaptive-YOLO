@@ -18,6 +18,8 @@ import cv2
 import math
 from filters import *
 
+tf.compat.v1.disable_eager_execution()
+
 if args.use_gpu == 0:
     gpu_id = '-1'
 else:
@@ -60,38 +62,38 @@ class YoloTrain(object):
         self.trainset            = Dataset('train')
         self.testset             = Dataset('test')
         self.steps_per_period    = len(self.trainset)
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
+        self.sess = tf.compat.v1.Session(config=config)
         # self.sess                = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
-        with tf.name_scope('define_input'):
-            self.input_data   = tf.placeholder(tf.float32, [None, None, None, 3], name='input_data')
-            self.defog_A   = tf.placeholder(tf.float32, [None, 3], name='defog_A')
-            self.IcA   = tf.placeholder(tf.float32, [None, None, None,1], name='IcA')
-            self.label_sbbox  = tf.placeholder(dtype=tf.float32, name='label_sbbox')
-            self.label_mbbox  = tf.placeholder(dtype=tf.float32, name='label_mbbox')
-            self.label_lbbox  = tf.placeholder(dtype=tf.float32, name='label_lbbox')
-            self.true_sbboxes = tf.placeholder(dtype=tf.float32, name='sbboxes')
-            self.true_mbboxes = tf.placeholder(dtype=tf.float32, name='mbboxes')
-            self.true_lbboxes = tf.placeholder(dtype=tf.float32, name='lbboxes')
-            self.input_data_clean   = tf.placeholder(tf.float32, [None, None, None, 3], name='input_data')
+        with tf.compat.v1.name_scope('define_input'):
+            self.input_data   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
+            self.defog_A   = tf.compat.v1.placeholder(tf.float32, [None, 3], name='defog_A')
+            self.IcA   = tf.compat.v1.placeholder(tf.float32, [None, None, None,1], name='IcA')
+            self.label_sbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_sbbox')
+            self.label_mbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_mbbox')
+            self.label_lbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_lbbox')
+            self.true_sbboxes = tf.compat.v1.placeholder(dtype=tf.float32, name='sbboxes')
+            self.true_mbboxes = tf.compat.v1.placeholder(dtype=tf.float32, name='mbboxes')
+            self.true_lbboxes = tf.compat.v1.placeholder(dtype=tf.float32, name='lbboxes')
+            self.input_data_clean   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
 
-            self.trainable     = tf.placeholder(dtype=tf.bool, name='training')
+            self.trainable     = tf.compat.v1.placeholder(dtype=tf.bool, name='training')
 
-        with tf.name_scope("define_loss"):
+        with tf.compat.v1.name_scope("define_loss"):
             self.model = YOLOV3(self.input_data, self.trainable, self.input_data_clean, self.defog_A, self.IcA)
-            t_variables = tf.trainable_variables()
+            t_variables = tf.compat.v1.trainable_variables()
             print("t_variables", t_variables)
             # self.net_var = [v for v in t_variables if not 'extract_parameters' in v.name]
-            self.net_var = tf.global_variables()
+            self.net_var = tf.compat.v1.global_variables()
             self.giou_loss, self.conf_loss, self.prob_loss, self.recovery_loss = self.model.compute_loss(
                                                     self.label_sbbox,  self.label_mbbox,  self.label_lbbox,
                                                     self.true_sbboxes, self.true_mbboxes, self.true_lbboxes)
             # self.loss only includes the detection loss.
             self.loss = self.giou_loss + self.conf_loss + self.prob_loss
 
-        with tf.name_scope('learn_rate'):
+        with tf.compat.v1.name_scope('learn_rate'):
             self.global_step = tf.Variable(1.0, dtype=tf.float64, trainable=False, name='global_step')
             warmup_steps = tf.constant(self.warmup_periods * self.steps_per_period,
                                         dtype=tf.float64, name='warmup_steps')
@@ -104,61 +106,61 @@ class YoloTrain(object):
                                     (1 + tf.cos(
                                         (self.global_step - warmup_steps) / (train_steps - warmup_steps) * np.pi))
             )
-            global_step_update = tf.assign_add(self.global_step, 1.0)
+            global_step_update = tf.compat.v1.assign_add(self.global_step, 1.0)
 
-        with tf.name_scope("define_weight_decay"):
-            moving_ave = tf.train.ExponentialMovingAverage(self.moving_ave_decay).apply(tf.trainable_variables())
+        with tf.compat.v1.name_scope("define_weight_decay"):
+            moving_ave = tf.train.ExponentialMovingAverage(self.moving_ave_decay).apply(tf.compat.v1.trainable_variables())
 
-        with tf.name_scope("define_first_stage_train"):
+        with tf.compat.v1.name_scope("define_first_stage_train"):
             self.first_stage_trainable_var_list = []
-            for var in tf.trainable_variables():
+            for var in tf.compat.v1.trainable_variables():
                 var_name = var.op.name
                 var_name_mess = str(var_name).split('/')
                 if var_name_mess[0] in ['conv_sbbox', 'conv_mbbox', 'conv_lbbox']:
                     self.first_stage_trainable_var_list.append(var)
 
-            first_stage_optimizer = tf.train.AdamOptimizer(self.learn_rate).minimize(self.loss,
+            first_stage_optimizer = tf.compat.v1.train.AdamOptimizer(self.learn_rate).minimize(self.loss,
                                                       var_list=self.first_stage_trainable_var_list)
-            with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+            with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
                 with tf.control_dependencies([first_stage_optimizer, global_step_update]):
                     with tf.control_dependencies([moving_ave]):
                         self.train_op_with_frozen_variables = tf.no_op()
 
-        with tf.name_scope("define_second_stage_train"):
-            second_stage_trainable_var_list = tf.trainable_variables()
-            second_stage_optimizer = tf.train.AdamOptimizer(self.learn_rate).minimize(self.loss,
+        with tf.compat.v1.name_scope("define_second_stage_train"):
+            second_stage_trainable_var_list = tf.compat.v1.trainable_variables()
+            second_stage_optimizer = tf.compat.v1.train.AdamOptimizer(self.learn_rate).minimize(self.loss,
                                                       var_list=second_stage_trainable_var_list)
 
-            with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
+            with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
                 with tf.control_dependencies([second_stage_optimizer, global_step_update]):
                     with tf.control_dependencies([moving_ave]):
                         self.train_op_with_all_variables = tf.no_op()
 
 
 
-        with tf.name_scope('loader_and_saver'):
-            self.loader = tf.train.Saver(self.net_var)
-            self.saver  = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+        with tf.compat.v1.name_scope('loader_and_saver'):
+            self.loader = tf.compat.v1.train.Saver(self.net_var)
+            self.saver  = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=5)
 
-        with tf.name_scope('summary'):
-            tf.summary.scalar("learn_rate",      self.learn_rate)
-            tf.summary.scalar("recovery_loss",  self.recovery_loss)
-            tf.summary.scalar("giou_loss",  self.giou_loss)
-            tf.summary.scalar("conf_loss",  self.conf_loss)
-            tf.summary.scalar("prob_loss",  self.prob_loss)
-            tf.summary.scalar("total_loss", self.loss)
+        with tf.compat.v1.name_scope('summary'):
+            tf.compat.v1.summary.scalar("learn_rate",      self.learn_rate)
+            tf.compat.v1.summary.scalar("recovery_loss",  self.recovery_loss)
+            tf.compat.v1.summary.scalar("giou_loss",  self.giou_loss)
+            tf.compat.v1.summary.scalar("conf_loss",  self.conf_loss)
+            tf.compat.v1.summary.scalar("prob_loss",  self.prob_loss)
+            tf.compat.v1.summary.scalar("total_loss", self.loss)
 
             # logdir = "./data/log/"
             logdir = os.path.join(exp_folder, 'log')
 
             if os.path.exists(logdir): shutil.rmtree(logdir)
             os.mkdir(logdir)
-            self.write_op = tf.summary.merge_all()
-            self.summary_writer  = tf.summary.FileWriter(logdir, graph=self.sess.graph)
+            self.write_op = tf.compat.v1.summary.merge_all()
+            self.summary_writer  = tf.compat.v1.summary.FileWriter(logdir, graph=self.sess.graph)
 
 
     def train(self):
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         try:
             print('=> Restoring weights from: %s ... ' % self.initial_weight)
             self.loader.restore(self.sess, self.initial_weight)

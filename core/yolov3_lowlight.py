@@ -30,13 +30,13 @@ class YOLOV3(object):
         except:
             raise NotImplementedError("Can not build up yolov3 network!")
 
-        with tf.variable_scope('pred_sbbox'):
+        with tf.compat.v1.variable_scope('pred_sbbox'):
             self.pred_sbbox = self.decode(self.conv_sbbox, self.anchors[0], self.strides[0])
 
-        with tf.variable_scope('pred_mbbox'):
+        with tf.compat.v1.variable_scope('pred_mbbox'):
             self.pred_mbbox = self.decode(self.conv_mbbox, self.anchors[1], self.strides[1])
 
-        with tf.variable_scope('pred_lbbox'):
+        with tf.compat.v1.variable_scope('pred_lbbox'):
             self.pred_lbbox = self.decode(self.conv_lbbox, self.anchors[2], self.strides[2])
 
     def __build_nework(self, input_data, isp_flag, input_data_clean):
@@ -46,8 +46,8 @@ class YOLOV3(object):
         filter_imgs_series = []
 
         if isp_flag:
-            with tf.variable_scope('extract_parameters_2'):
-                input_data = tf.image.resize_images(input_data, [256, 256], method=tf.image.ResizeMethod.BILINEAR)
+            with tf.compat.v1.variable_scope('extract_parameters_2'):
+                input_data = tf.image.resize(input_data, [256, 256], method=tf.image.ResizeMethod.BILINEAR)
                 filter_features = common.extract_parameters_2(input_data, cfg, self.trainable)
 
             # filter_features = tf.random_normal([1, 10], 0.5, 0.1)
@@ -56,7 +56,7 @@ class YOLOV3(object):
             filters = [x(input_data, cfg) for x in filters]
             filter_parameters = []
             for j, filter in enumerate(filters):
-                with tf.variable_scope('filter_%d' % j):
+                with tf.compat.v1.variable_scope('filter_%d' % j):
                     print('    creating filter:', j, 'name:', str(filter.__class__), 'abbr.',
                           filter.get_short_name())
                     print('      filter_features:', filter_features.shape)
@@ -72,7 +72,7 @@ class YOLOV3(object):
         self.image_isped = filtered_image_batch
         self.filter_imgs_series = filter_imgs_series
 
-        recovery_loss = tf.reduce_sum(tf.pow(filtered_image_batch - input_data_clean, 2.0))#/(2.0 * batch_size)
+        recovery_loss = tf.reduce_sum(input_tensor=tf.pow(filtered_image_batch - input_data_clean, 2.0))#/(2.0 * batch_size)
 
         input_data = filtered_image_batch
         route_1, route_2, input_data = backbone.darknet53(input_data, self.trainable)
@@ -90,7 +90,7 @@ class YOLOV3(object):
         input_data = common.convolutional(input_data, (1, 1,  512,  256), self.trainable, 'conv57')
         input_data = common.upsample(input_data, name='upsample0', method=self.upsample_method)
 
-        with tf.variable_scope('route_1'):
+        with tf.compat.v1.variable_scope('route_1'):
             input_data = tf.concat([input_data, route_2], axis=-1)
 
         input_data = common.convolutional(input_data, (1, 1, 768, 256), self.trainable, 'conv58')
@@ -106,7 +106,7 @@ class YOLOV3(object):
         input_data = common.convolutional(input_data, (1, 1, 256, 128), self.trainable, 'conv63')
         input_data = common.upsample(input_data, name='upsample1', method=self.upsample_method)
 
-        with tf.variable_scope('route_2'):
+        with tf.compat.v1.variable_scope('route_2'):
             input_data = tf.concat([input_data, route_1], axis=-1)
 
         input_data = common.convolutional(input_data, (1, 1, 384, 128), self.trainable, 'conv64')
@@ -127,7 +127,7 @@ class YOLOV3(object):
                contains (x, y, w, h, score, probability)
         """
 
-        conv_shape       = tf.shape(conv_output)
+        conv_shape       = tf.shape(input=conv_output)
         batch_size       = conv_shape[0]
         output_size      = conv_shape[1]
         anchor_per_scale = len(anchors)
@@ -212,7 +212,7 @@ class YOLOV3(object):
 
     def loss_layer(self, conv, pred, label, bboxes, anchors, stride):
 
-        conv_shape  = tf.shape(conv)
+        conv_shape  = tf.shape(input=conv)
         batch_size  = conv_shape[0]
         output_size = conv_shape[1]
         input_size  = stride * output_size
@@ -235,7 +235,7 @@ class YOLOV3(object):
         giou_loss = respond_bbox * bbox_loss_scale * (1- giou)
 
         iou = self.bbox_iou(pred_xywh[:, :, :, :, np.newaxis, :], bboxes[:, np.newaxis, np.newaxis, np.newaxis, :, :])
-        max_iou = tf.expand_dims(tf.reduce_max(iou, axis=-1), axis=-1)
+        max_iou = tf.expand_dims(tf.reduce_max(input_tensor=iou, axis=-1), axis=-1)
 
         respond_bgd = (1.0 - respond_bbox) * tf.cast( max_iou < self.iou_loss_thresh, tf.float32 )
 
@@ -249,9 +249,9 @@ class YOLOV3(object):
 
         prob_loss = respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=label_prob, logits=conv_raw_prob)
 
-        giou_loss = tf.reduce_mean(tf.reduce_sum(giou_loss, axis=[1,2,3,4]))
-        conf_loss = tf.reduce_mean(tf.reduce_sum(conf_loss, axis=[1,2,3,4]))
-        prob_loss = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=[1,2,3,4]))
+        giou_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=giou_loss, axis=[1,2,3,4]))
+        conf_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=conf_loss, axis=[1,2,3,4]))
+        prob_loss = tf.reduce_mean(input_tensor=tf.reduce_sum(input_tensor=prob_loss, axis=[1,2,3,4]))
 
         return giou_loss, conf_loss, prob_loss
 
@@ -259,27 +259,27 @@ class YOLOV3(object):
 
     def compute_loss(self, label_sbbox, label_mbbox, label_lbbox, true_sbbox, true_mbbox, true_lbbox):
 
-        with tf.name_scope('smaller_box_loss'):
+        with tf.compat.v1.name_scope('smaller_box_loss'):
             loss_sbbox = self.loss_layer(self.conv_sbbox, self.pred_sbbox, label_sbbox, true_sbbox,
                                          anchors = self.anchors[0], stride = self.strides[0])
 
-        with tf.name_scope('medium_box_loss'):
+        with tf.compat.v1.name_scope('medium_box_loss'):
             loss_mbbox = self.loss_layer(self.conv_mbbox, self.pred_mbbox, label_mbbox, true_mbbox,
                                          anchors = self.anchors[1], stride = self.strides[1])
 
-        with tf.name_scope('bigger_box_loss'):
+        with tf.compat.v1.name_scope('bigger_box_loss'):
             loss_lbbox = self.loss_layer(self.conv_lbbox, self.pred_lbbox, label_lbbox, true_lbbox,
                                          anchors = self.anchors[2], stride = self.strides[2])
 
-        with tf.name_scope('giou_loss'):
+        with tf.compat.v1.name_scope('giou_loss'):
             giou_loss = loss_sbbox[0] + loss_mbbox[0] + loss_lbbox[0]
 
-        with tf.name_scope('conf_loss'):
+        with tf.compat.v1.name_scope('conf_loss'):
             conf_loss = loss_sbbox[1] + loss_mbbox[1] + loss_lbbox[1]
 
-        with tf.name_scope('prob_loss'):
+        with tf.compat.v1.name_scope('prob_loss'):
             prob_loss = loss_sbbox[2] + loss_mbbox[2] + loss_lbbox[2]
-        with tf.name_scope('recovery_loss'):
+        with tf.compat.v1.name_scope('recovery_loss'):
             recovery_loss = self.recovery_loss
 
         return giou_loss, conf_loss, prob_loss, recovery_loss

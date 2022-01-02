@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import tensorflow.contrib.layers as ly
 from util_filters import lrelu, rgb2lum, tanh_range, lerp
 import cv2
 import math
@@ -121,7 +120,7 @@ class Filter:
       return tf.ones(shape=(1, 1, 1, 1), dtype=tf.float32)
     else:
       print('* Masking Enabled')
-    with tf.name_scope(name='mask'):
+    with tf.compat.v1.name_scope(name='mask'):
       # Six parameters for one filter
       filter_input_range = 5
       assert mask_parameters.shape[1] == self.get_num_mask_parameters()
@@ -215,7 +214,7 @@ class UsmFilter(Filter):#Usm_param is in [Defog_range]
       radius = 12
       x = tf.cast(tf.range(-radius, radius + 1), dtype=dtype)
       k = tf.exp(-0.5 * tf.square(x / sigma))
-      k = k / tf.reduce_sum(k)
+      k = k / tf.reduce_sum(input_tensor=k)
       return tf.expand_dims(k, 1) * k
 
     kernel_i = make_gaussian_2d_kernel(5)
@@ -229,11 +228,11 @@ class UsmFilter(Filter):#Usm_param is in [Defog_range]
     #     outputs.append(data_c)
 
     pad_w = (25 - 1) // 2
-    padded = tf.pad(img, [[0, 0], [pad_w, pad_w], [pad_w, pad_w], [0, 0]], mode='REFLECT')
+    padded = tf.pad(tensor=img, paddings=[[0, 0], [pad_w, pad_w], [pad_w, pad_w], [0, 0]], mode='REFLECT')
     outputs = []
     for channel_idx in range(3):
         data_c = padded[:, :, :, channel_idx:(channel_idx + 1)]
-        data_c = tf.nn.conv2d(data_c, kernel_i, [1, 1, 1, 1], 'VALID')
+        data_c = tf.nn.conv2d(input=data_c, filters=kernel_i, strides=[1, 1, 1, 1], padding='VALID')
         outputs.append(data_c)
 
     output = tf.concat(outputs, axis=3)
@@ -258,7 +257,7 @@ class UsmFilter_sigma(Filter):#Usm_param is in [Defog_range]
       radius = 12
       x = tf.cast(tf.range(-radius, radius + 1), dtype=dtype)
       k = tf.exp(-0.5 * tf.square(x / sigma))
-      k = k / tf.reduce_sum(k)
+      k = k / tf.reduce_sum(input_tensor=k)
       return tf.expand_dims(k, 1) * k
 
     kernel_i = make_gaussian_2d_kernel(param[:, None, None, :])
@@ -272,11 +271,11 @@ class UsmFilter_sigma(Filter):#Usm_param is in [Defog_range]
     #     outputs.append(data_c)
 
     pad_w = (25 - 1) // 2
-    padded = tf.pad(img, [[0, 0], [pad_w, pad_w], [pad_w, pad_w], [0, 0]], mode='REFLECT')
+    padded = tf.pad(tensor=img, paddings=[[0, 0], [pad_w, pad_w], [pad_w, pad_w], [0, 0]], mode='REFLECT')
     outputs = []
     for channel_idx in range(3):
         data_c = padded[:, :, :, channel_idx:(channel_idx + 1)]
-        data_c = tf.nn.conv2d(data_c, kernel_i, [1, 1, 1, 1], 'VALID')
+        data_c = tf.nn.conv2d(input=data_c, filters=kernel_i, strides=[1, 1, 1, 1], padding='VALID')
         outputs.append(data_c)
 
     output = tf.concat(outputs, axis=3)
@@ -387,7 +386,7 @@ class ColorFilter(Filter):
   def process(self, img, param, defog, IcA):
     color_curve = param
     # There will be no division by zero here unless the color filter range lower bound is 0
-    color_curve_sum = tf.reduce_sum(param, axis=4) + 1e-30
+    color_curve_sum = tf.reduce_sum(input_tensor=param, axis=4) + 1e-30
     total_image = img * 0
     for i in range(self.cfg.curve_steps):
       total_image += tf.clip_by_value(img - 1.0 * i / self.cfg.curve_steps, 0, 1.0 / self.cfg.curve_steps) * \
@@ -444,7 +443,7 @@ class ToneFilter(Filter):
     #     param, shape=(-1, 1, self.cfg.curve_steps))[:, None, None, :]
 
     tone_curve = param
-    tone_curve_sum = tf.reduce_sum(tone_curve, axis=4) + 1e-30
+    tone_curve_sum = tf.reduce_sum(input_tensor=tone_curve, axis=4) + 1e-30
     total_image = img * 0
     for i in range(self.cfg.curve_steps):
       total_image += tf.clip_by_value(img - 1.0 * i / self.cfg.curve_steps, 0, 1.0 / self.cfg.curve_steps) \
@@ -497,7 +496,7 @@ class VignetFilter(Filter):
   # Closer to 1 values are applied by filter more strongly
   # no additional TF variables inside
   def get_mask(self, img, mask_parameters):
-    with tf.name_scope(name='mask'):
+    with tf.compat.v1.name_scope(name='mask'):
       # Five parameters for one filter
       filter_input_range = 5
       assert mask_parameters.shape[1] == self.get_num_mask_parameters()

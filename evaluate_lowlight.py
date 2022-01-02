@@ -13,6 +13,9 @@ from core.yolov3_lowlight import YOLOV3
 from core.config_lowlight import args
 import random
 import time
+
+tf.compat.v1.disable_eager_execution()
+
 exp_folder = os.path.join(args.exp_dir, 'exp_{}'.format(args.exp_num))
 
 
@@ -43,24 +46,24 @@ class YoloTest(object):
         self.show_label       = cfg.TEST.SHOW_LABEL
         self.isp_flag = cfg.YOLO.ISP_FLAG
 
-        with tf.name_scope('input'):
-            self.input_data = tf.placeholder(tf.float32, [None, None, None, 3], name='input_data')
-            self.trainable  = tf.placeholder(dtype=tf.bool,    name='trainable')
-            self.input_data_clean   = tf.placeholder(tf.float32, [None, None, None, 3], name='input_data')
+        with tf.compat.v1.name_scope('input'):
+            self.input_data = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
+            self.trainable  = tf.compat.v1.placeholder(dtype=tf.bool,    name='trainable')
+            self.input_data_clean   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
 
 
         model = YOLOV3(self.input_data, self.trainable, self.input_data_clean)
         self.pred_sbbox, self.pred_mbbox, self.pred_lbbox, self.image_isped, self.isp_params = \
             model.pred_sbbox, model.pred_mbbox, model.pred_lbbox, model.image_isped,model.filter_params
 
-        with tf.name_scope('ema'):
+        with tf.compat.v1.name_scope('ema'):
             ema_obj = tf.train.ExponentialMovingAverage(self.moving_ave_decay)
-        config = tf.ConfigProto()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
+        self.sess = tf.compat.v1.Session(config=config)
 
         # self.sess  = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-        self.saver = tf.train.Saver(ema_obj.variables_to_restore())
+        self.saver = tf.compat.v1.train.Saver(ema_obj.variables_to_restore())
         self.saver.restore(self.sess, self.weight_file)
 
     def predict(self, image, image_name):

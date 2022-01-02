@@ -12,16 +12,16 @@ parser.add_argument('--epoch_second_stage', dest='epoch_second_stage', type=int,
 parser.add_argument('--use_gpu', dest='use_gpu', type=int, default=1, help='gpu flag, 1 for GPU and 0 for CPU')
 parser.add_argument('--checkpoint_dir', dest='ckpt_dir', default='checkpoint', help='models are saved here')
 parser.add_argument('--exp_dir', dest='exp_dir', default='./experiments', help='models are saved here')
-parser.add_argument('--gpu_id', dest='gpu_id', type=str, default='7', help='if use gpu, use gpu device id')
+parser.add_argument('--gpu_id', dest='gpu_id', type=str, default='0', help='if use gpu, use gpu device id')
 parser.add_argument('--ISP_FLAG', dest='ISP_FLAG', type=bool, default=True, help='whether use DIP Module')
 parser.add_argument('--fog_FLAG', dest='fog_FLAG', type=bool, default=True, help='whether use Hybrid data training')
-parser.add_argument('--vocfog_traindata_dir', dest='vocfog_traindata_dir', default='/data/vdd/liuwenyu/data_vocfog/train/JPEGImages/',
+parser.add_argument('--vocfog_traindata_dir', dest='vocfog_traindata_dir', default='/mnt/sda/yyx/ml_data/VOCdevkit-fog/train/',
                     help='the dir contains ten levels synthetic foggy images')
-parser.add_argument('--vocfog_valdata_dir', dest='vocfog_valdata_dir', default='/data/vdd/liuwenyu/data_vocfog/val/JPEGImages/',
+parser.add_argument('--vocfog_valdata_dir', dest='vocfog_valdata_dir', default='/mnt/sda/yyx/ml_data/VOCdevkit/VOC2007/JPEGImages/',
                     help='the dir contains ten levels synthetic foggy images')
 parser.add_argument('--train_path', dest='train_path', nargs='*', default='./data/dataset_fog/voc_norm_train.txt', help='folder of the training data')
 parser.add_argument('--val_path', dest='val_path', nargs='*', default='./data/dataset_fog/voc_norm_test.txt', help='folder of the training data')
-parser.add_argument('--test_path', dest='test_path', nargs='*', default='./data/dataset_fog/quick_test.txt', help='folder of the training data')
+parser.add_argument('--test_path', dest='test_path', nargs='*', default='./data/dataset_fog/RTTS_test.txt', help='folder of the training data')
 parser.add_argument('--class_name', dest='class_name', nargs='*', default='./data/classes/vocfog.names', help='folder of the training data')
 parser.add_argument('--WRITE_IMAGE_PATH', dest='WRITE_IMAGE_PATH', nargs='*', default='./experiments/exp_101/detection_results/', help='folder of the training data')
 parser.add_argument('--WEIGHT_FILE', dest='WEIGHT_FILE', nargs='*', default='./experiments/exp_101/checkpoint/yolov3_test_loss=5.8980.ckpt-75', help='folder of the training data')
@@ -114,7 +114,7 @@ __C.YOLO.ISP_FLAG            = args.ISP_FLAG
 __C.TRAIN                       = edict()
 
 __C.TRAIN.ANNOT_PATH            = args.train_path
-__C.TRAIN.BATCH_SIZE            = 6
+__C.TRAIN.BATCH_SIZE            = 3
 # __C.TRAIN.INPUT_SIZE            = [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 __C.TRAIN.INPUT_SIZE            = [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 

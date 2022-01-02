@@ -23,10 +23,10 @@ preserve_org_names = ['Conv_6', 'Conv_14', 'Conv_22']
 
 org_weights_mess = []
 tf.Graph().as_default()
-load = tf.train.import_meta_graph(org_weights_path + '.meta')
-with tf.Session() as sess:
+load = tf.compat.v1.train.import_meta_graph(org_weights_path + '.meta')
+with tf.compat.v1.Session() as sess:
     load.restore(sess, org_weights_path)
-    for var in tf.global_variables():
+    for var in tf.compat.v1.global_variables():
         var_name = var.op.name
         var_name_mess = str(var_name).split('/')
         var_shape = var.shape
@@ -36,15 +36,15 @@ with tf.Session() as sess:
         org_weights_mess.append([var_name, var_shape])
         print("=> " + str(var_name).ljust(50), var_shape)
 print()
-tf.reset_default_graph()
+tf.compat.v1.reset_default_graph()
 
 cur_weights_mess = []
 tf.Graph().as_default()
-with tf.name_scope('input'):
-    input_data = tf.placeholder(dtype=tf.float32, shape=(1, 416, 416, 3), name='input_data')
-    training = tf.placeholder(dtype=tf.bool, name='trainable')
+with tf.compat.v1.name_scope('input'):
+    input_data = tf.compat.v1.placeholder(dtype=tf.float32, shape=(1, 416, 416, 3), name='input_data')
+    training = tf.compat.v1.placeholder(dtype=tf.bool, name='trainable')
 model = YOLOV3(input_data, training)
-for var in tf.global_variables():
+for var in tf.compat.v1.global_variables():
     var_name = var.op.name
     var_name_mess = str(var_name).split('/')
     var_shape = var.shape
@@ -71,19 +71,19 @@ for index in range(org_weights_num):
     cur_to_org_dict[cur_name] = org_name
     print("=> " + str(cur_name).ljust(50) + ' : ' + org_name)
 
-with tf.name_scope('load_save'):
-    name_to_var_dict = {var.op.name: var for var in tf.global_variables()}
+with tf.compat.v1.name_scope('load_save'):
+    name_to_var_dict = {var.op.name: var for var in tf.compat.v1.global_variables()}
     restore_dict = {cur_to_org_dict[cur_name]: name_to_var_dict[cur_name] for cur_name in cur_to_org_dict}
-    load = tf.train.Saver(restore_dict)
-    save = tf.train.Saver(tf.global_variables())
-    for var in tf.global_variables():
+    load = tf.compat.v1.train.Saver(restore_dict)
+    save = tf.compat.v1.train.Saver(tf.compat.v1.global_variables())
+    for var in tf.compat.v1.global_variables():
         print("=> " + var.op.name)
 
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+with tf.compat.v1.Session() as sess:
+    sess.run(tf.compat.v1.global_variables_initializer())
     print('=> Restoring weights from:\t %s' % org_weights_path)
     load.restore(sess, org_weights_path)
     save.save(sess, cur_weights_path)
-tf.reset_default_graph()
+tf.compat.v1.reset_default_graph()
 
 
