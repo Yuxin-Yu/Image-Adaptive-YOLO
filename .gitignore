@@ -8,5 +8,12 @@ data/RTTS
 
 #checkpoint
 experiments/exp_101/checkpoint/*
-experiments/exp_101/detection_results/*
 experiments_lowlight/exp_58/checkpoint/*
+
+#detection_results
+experiments/exp_101/detection_results/*
+experiments/exp_RTTS_test/detection_results/*
+experiments/exp_voc_norm_test/detection_results/*
+experiments_lowlight/exp_exdark_test/detection_results/*
+experiments_lowlight/exp_voc_dark_test/detection_results/*
+experiments_lowlight/exp_voc_norm_test/detection_results/*
