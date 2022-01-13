@@ -5,7 +5,7 @@
 import tensorflow as tf
 import tf_slim
 from util_filters import *
-
+from core.config_lowlight import args
 
 def extract_parameters(net, cfg, trainable):
     output_dim = cfg.num_filter_parameters
@@ -46,7 +46,11 @@ def extract_parameters_2(net, cfg, trainable):
     print('extract_parameters_2 CNN:')
     channels = 16
     print('    ', str(net.get_shape()))
-    net = convolutional(net, filters_shape=(3, 3, 3, channels), trainable=trainable, name='ex_conv0',
+    if args.grayimage_FLAG:
+        net = convolutional(net, filters_shape=(3, 3, 1, channels), trainable=trainable, name='ex_conv0',
+                        downsample=True, activate=True, bn=False)
+    else:
+        net = convolutional(net, filters_shape=(3, 3, 3, channels), trainable=trainable, name='ex_conv0',
                         downsample=True, activate=True, bn=False)
     net = convolutional(net, filters_shape=(3, 3, channels, 2*channels), trainable=trainable, name='ex_conv1',
                         downsample=True, activate=True, bn=False)

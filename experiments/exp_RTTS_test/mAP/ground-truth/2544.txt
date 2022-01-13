@@ -1,5 +1,0 @@
-car 169 173 255 258
-motorcycle 223 198 439 335
-motorcycle 410 194 565 335
-person 234 76 416 335
-person 410 134 539 335

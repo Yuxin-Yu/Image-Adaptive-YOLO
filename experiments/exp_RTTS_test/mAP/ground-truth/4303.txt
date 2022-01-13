@@ -1,2 +1,0 @@
-person 24 122 108 289
-motorcycle 10 161 113 305

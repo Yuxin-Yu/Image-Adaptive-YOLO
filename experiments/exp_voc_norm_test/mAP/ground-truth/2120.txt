@@ -1,2 +1,0 @@
-motorcycle 70 151 129 275
-motorcycle 121 135 142 168

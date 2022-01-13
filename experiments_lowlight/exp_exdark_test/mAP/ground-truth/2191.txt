@@ -1,3 +1,0 @@
-motorbike 52 426 326 693
-motorbike 294 411 607 675
-motorbike 565 396 888 665

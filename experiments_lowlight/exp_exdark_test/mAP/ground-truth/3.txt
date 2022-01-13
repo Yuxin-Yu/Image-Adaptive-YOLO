@@ -1,6 +1,0 @@
-bicycle 4 271 192 415
-bicycle 209 236 271 270
-bicycle 97 250 258 378
-bicycle 2 237 23 272
-bicycle 73 222 116 250
-boat 281 249 348 319

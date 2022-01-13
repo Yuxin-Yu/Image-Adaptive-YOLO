@@ -1,5 +1,0 @@
-bicycle 543 287 873 669
-bicycle 392 268 626 543
-bicycle 246 312 425 507
-bicycle 117 303 247 450
-bicycle 8 309 88 403

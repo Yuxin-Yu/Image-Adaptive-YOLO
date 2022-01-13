@@ -1,4 +1,0 @@
-person 0.3243 98 36 246 260
-motorcycle 0.8144 91 55 268 283
-motorcycle 0.6478 221 68 389 254
-motorcycle 0.4952 402 54 499 224

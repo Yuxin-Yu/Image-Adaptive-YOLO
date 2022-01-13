@@ -1,5 +1,0 @@
-person 736 284 785 431
-person 805 291 838 382
-motorcycle 784 340 896 448
-motorcycle 698 336 783 415
-motorcycle 599 326 681 402

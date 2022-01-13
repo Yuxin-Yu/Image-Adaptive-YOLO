@@ -14,6 +14,7 @@ from core.yolov3_lowlight import YOLOV3
 from core.config_lowlight import cfg
 from core.config_lowlight import args
 import random
+import matplotlib.pyplot as plt
 
 tf.compat.v1.disable_eager_execution()
 
@@ -62,10 +63,14 @@ class YoloTrain(object):
         config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         self.sess = tf.compat.v1.Session(config=config)
+        self.end_points = {}
         # self.sess                = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
         with tf.compat.v1.name_scope('define_input'):
-            self.input_data   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
+            if args.grayimage_FLAG:
+                self.input_data   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 1], name='input_data')
+            else:
+                self.input_data   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
             self.label_sbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_sbbox')
             self.label_mbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_mbbox')
             self.label_lbbox  = tf.compat.v1.placeholder(dtype=tf.float32, name='label_lbbox')
@@ -78,8 +83,11 @@ class YoloTrain(object):
 
         with tf.compat.v1.name_scope("define_loss"):
             self.model = YOLOV3(self.input_data, self.trainable, self.input_data_clean)
-            t_variables = tf.compat.v1.trainable_variables()
-            print("t_variables", t_variables)
+            #t_variables = tf.compat.v1.trainable_variables()
+            #print("t_variables", t_variables)
+            self.end_points = self.model.get_endpoints()
+            for i in self.end_points.keys():
+                print(i, self.end_points[i].shape)
             # self.net_var = [v for v in t_variables if not 'extract_parameters' in v.name]
             self.net_var = tf.compat.v1.global_variables()
             self.giou_loss, self.conf_loss, self.prob_loss, self.recovery_loss = self.model.compute_loss(
@@ -87,6 +95,7 @@ class YoloTrain(object):
                                                     self.true_sbboxes, self.true_mbboxes, self.true_lbboxes)
             # self.loss only includes the detection loss.
             self.loss = self.giou_loss + self.conf_loss + self.prob_loss
+            self.test_loss = tf.Variable(0, dtype=tf.float64, trainable=False, name='test_loss')
 
         with tf.compat.v1.name_scope('learn_rate'):
             self.global_step = tf.Variable(1.0, dtype=tf.float64, trainable=False, name='global_step')
@@ -142,6 +151,7 @@ class YoloTrain(object):
             tf.compat.v1.summary.scalar("prob_loss",  self.prob_loss)
             tf.compat.v1.summary.scalar("recovery_loss",  self.recovery_loss)
             tf.compat.v1.summary.scalar("total_loss", self.loss)
+            tf.compat.v1.summary.scalar("test_loss", self.test_loss)
 
             # logdir = "./data/log/"
             logdir = os.path.join(exp_folder, 'log')
@@ -161,6 +171,8 @@ class YoloTrain(object):
             print('=> %s does not exist !!!' % self.initial_weight)
             print('=> Now it starts to train YOLOV3 from scratch ...')
             self.first_stage_epochs = 0
+
+        train_epoch_loss_plot, test_epoch_loss_plot = [0], [0]
 
         for epoch in range(1, 1+self.first_stage_epochs+self.second_stage_epochs):
             if epoch <= self.first_stage_epochs:
@@ -190,18 +202,38 @@ class YoloTrain(object):
                             self.trainable: True,
                         })
                 else:
-                    _, summary, train_step_loss, global_step_val = self.sess.run(
-                        [train_op, self.write_op, self.loss, self.global_step], feed_dict={
-                            self.input_data: train_data[0],
-                            self.label_sbbox: train_data[1],
-                            self.label_mbbox: train_data[2],
-                            self.label_lbbox: train_data[3],
-                            self.true_sbboxes: train_data[4],
-                            self.true_mbboxes: train_data[5],
-                            self.true_lbboxes: train_data[6],
-                            self.input_data_clean: train_data[0],
-                            self.trainable: True,
-                        })
+                    if args.grayimage_FLAG:
+                        bn,h,w,t  = train_data[0].shape
+                        input_image = np.empty([bn,h,w,1],dtype=np.float64)
+                        for bi in range(bn):
+                            r,g,b = [train_data[0][bi,:,:,i] for i in range(3)]
+                            img_gray = r*0.299+g*0.587+b*0.114
+                            input_image[bi,:,:,0] = img_gray
+                        _, summary, train_step_loss, global_step_val = self.sess.run(
+                            [train_op, self.write_op, self.loss, self.global_step], feed_dict={
+                                self.input_data: input_image,
+                                self.label_sbbox: train_data[1],
+                                self.label_mbbox: train_data[2],
+                                self.label_lbbox: train_data[3],
+                                self.true_sbboxes: train_data[4],
+                                self.true_mbboxes: train_data[5],
+                                self.true_lbboxes: train_data[6],
+                                self.input_data_clean: train_data[0],
+                                self.trainable: True,
+                            })
+                    else:
+                        _, summary, train_step_loss, global_step_val = self.sess.run(
+                            [train_op, self.write_op, self.loss, self.global_step], feed_dict={
+                                self.input_data: train_data[0],
+                                self.label_sbbox: train_data[1],
+                                self.label_mbbox: train_data[2],
+                                self.label_lbbox: train_data[3],
+                                self.true_sbboxes: train_data[4],
+                                self.true_mbboxes: train_data[5],
+                                self.true_lbboxes: train_data[6],
+                                self.input_data_clean: train_data[0],
+                                self.trainable: True,
+                            })
 
                 train_epoch_loss.append(train_step_loss)
                 self.summary_writer.add_summary(summary, global_step_val)
@@ -244,14 +276,25 @@ class YoloTrain(object):
                     test_epoch_loss.append(test_step_loss)
 
             train_epoch_loss, test_epoch_loss = np.mean(train_epoch_loss), np.mean(test_epoch_loss)
+            self.test_loss = test_epoch_loss
+            train_epoch_loss_plot.append(train_epoch_loss)
+            test_epoch_loss_plot.append(test_epoch_loss)
             ckpt_file = args.ckpt_dir + "/yolov3_test_loss=%.4f.ckpt" % test_epoch_loss
             log_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
             print("=> Epoch: %2d Time: %s Train loss: %.2f Test loss: %.2f Saving %s ..."
                             %(epoch, log_time, train_epoch_loss, test_epoch_loss, ckpt_file))
             self.saver.save(self.sess, ckpt_file, global_step=epoch)
 
+        plt.plot(range(0, 1+self.first_stage_epochs+self.second_stage_epochs),train_epoch_loss_plot,label='train')
+        plt.plot(range(0, 1+self.first_stage_epochs+self.second_stage_epochs),test_epoch_loss_plot,label='test')
+        fig = plt.gcf() # gcf - get current figure
+        plt.title('Train and test loss in every epoch')# set plot title
+        plt.xlabel('epoch')# set axis titles
+        plt.ylabel('loss')
+        fig.savefig(args.exp_dir + "/exp_" + args.exp_num + "/Loss.png")
+        plt.cla() # clear axes for next plot
 
-
+        
 if __name__ == '__main__': YoloTrain().train()
 
 

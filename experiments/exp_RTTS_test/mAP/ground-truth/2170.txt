@@ -1,6 +1,0 @@
-person 295 95 358 230
-person 143 94 189 230
-person 96 92 134 175
-motorcycle 94 113 138 184
-bicycle 136 148 213 251
-bicycle 296 122 364 251

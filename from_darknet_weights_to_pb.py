@@ -5,7 +5,7 @@ from from_darknet_weights_to_ckpt import load_weights
 tf.compat.v1.disable_eager_execution()
 
 input_size = 416
-darknet_weights = '<your darknet weights file path>'
+darknet_weights = './experiments_orman/exp_20_aspp_ser/checkpoint'
 pb_file = './yolov3.pb'
 output_node_names = ["input/input_data", "pred_sbbox/concat_2", "pred_mbbox/concat_2", "pred_lbbox/concat_2"]
 

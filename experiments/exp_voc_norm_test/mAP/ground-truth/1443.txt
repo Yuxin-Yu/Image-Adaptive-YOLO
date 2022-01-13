@@ -1,2 +1,0 @@
-bicycle 224 151 262 194
-motorcycle 336 126 369 188

@@ -1,2 +1,0 @@
-motorcycle 79 73 479 365
-person 171 4 348 310

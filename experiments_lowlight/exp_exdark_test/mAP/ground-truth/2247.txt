@@ -1,2 +1,0 @@
-motorbike 245 110 433 302
-motorbike 292 109 628 448

@@ -1,3 +1,0 @@
-motorcycle 0.9180 179 310 304 491
-motorcycle 0.8067 53 268 137 415
-motorcycle 0.3284 152 263 346 450

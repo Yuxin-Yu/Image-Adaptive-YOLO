@@ -1,4 +1,0 @@
-person 466 159 606 505
-person 575 291 674 509
-person 240 270 286 365
-motorcycle 241 290 287 372

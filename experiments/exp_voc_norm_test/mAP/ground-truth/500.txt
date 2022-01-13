@@ -1,3 +1,0 @@
-motorcycle 27 62 474 305
-motorcycle 1 1 212 172
-motorcycle 258 1 443 128

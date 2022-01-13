@@ -8,7 +8,8 @@ import core.utils as utils
 import core.common as common
 import core.backbone as backbone
 from core.config_lowlight import cfg
-
+from core.config_lowlight import args
+from mymodule.modules import *
 
 class YOLOV3(object):
     """Implement tensoflow yolov3 here"""
@@ -23,10 +24,11 @@ class YOLOV3(object):
         self.iou_loss_thresh  = cfg.YOLO.IOU_LOSS_THRESH
         self.upsample_method  = cfg.YOLO.UPSAMPLE_METHOD
         self.isp_flag = cfg.YOLO.ISP_FLAG
+        self.end_points = {}
 
 
         try:
-            self.conv_lbbox, self.conv_mbbox, self.conv_sbbox, self.recovery_loss= self.__build_nework(input_data, self.isp_flag, input_data_clean)
+            self.conv_lbbox, self.conv_mbbox, self.conv_sbbox, self.recovery_loss,self.end_points = self.__build_nework(input_data, self.isp_flag, input_data_clean)
         except:
             raise NotImplementedError("Can not build up yolov3 network!")
 
@@ -44,6 +46,7 @@ class YOLOV3(object):
         filtered_image_batch = input_data
         self.filter_params = input_data
         filter_imgs_series = []
+        end_points = {}
 
         if isp_flag:
             with tf.compat.v1.variable_scope('extract_parameters_2'):
@@ -76,22 +79,67 @@ class YOLOV3(object):
 
         input_data = filtered_image_batch
         route_1, route_2, input_data = backbone.darknet53(input_data, self.trainable)
+        if args.aspp_FLAG_ser:
+            input_data = common.convolutional(input_data, (1, 1, 1024,  512), self.trainable, 'aspp_conv0')
+            input_data = common.convolutional(input_data, (3, 3,  512, 1024), self.trainable, 'aspp_conv1')
+            input_data = common.convolutional(input_data, (1, 1, 1024,  512), self.trainable, 'aspp_conv2')
+
+            aspp_list = ASPP(input_data, [6, 12, 18], 512)
+            end_points["aspp1"] = aspp_list[0]
+            end_points["aspp2"] = aspp_list[1]
+            end_points["aspp3"] = aspp_list[2]
+            end_points["aspp4"] = aspp_list[3]
+
+            # Image Pooling
+            with tf.compat.v1.variable_scope("img_pool"):
+                # print("net:", net.shape)
+                pooled = tf.reduce_mean(input_tensor=input_data, axis=[1, 2], name="avg_pool", keepdims=True)
+                # end_points["aspp5"] = pooled
+
+                global_feat = tf_slim.conv2d(pooled, num_outputs=512, kernel_size=1, stride=1, scope="conv1x1")
+                global_feat = tf.image.resize(global_feat, tf.shape(input=input_data)[1:3], method=tf.image.ResizeMethod.BILINEAR)
+                # print("global_feat:", global_feat.shape)
+                aspp_list.append(global_feat)
+                end_points["aspp5"] = global_feat
+
+            input_data = tf.concat(aspp_list, axis=3)
+            end_points['fusion'] = input_data
+            input_data = common.convolutional(input_data, (1, 1, 2560,  1024), self.trainable, 'aspp_conv3')
+            input_data = common.convolutional(input_data, (3, 3,  1024, 2048), self.trainable, 'aspp_conv4')
+            input_data = common.convolutional(input_data, (1, 1, 2048,  1024), self.trainable, 'aspp_conv5')
+
+
+        if args.aspp_FLAG:
+            layer1=tf.compat.v1.layers.conv2d(input_data,512,3,strides=1, padding='same',dilation_rate=6)
+            layer1=tf.compat.v1.layers.conv2d(layer1,512,1,strides=1, padding='same')
+            layer1=tf.compat.v1.layers.conv2d(layer1,512,1,strides=1, padding='same')
 
         input_data = common.convolutional(input_data, (1, 1, 1024,  512), self.trainable, 'conv52')
         input_data = common.convolutional(input_data, (3, 3,  512, 1024), self.trainable, 'conv53')
         input_data = common.convolutional(input_data, (1, 1, 1024,  512), self.trainable, 'conv54')
         input_data = common.convolutional(input_data, (3, 3,  512, 1024), self.trainable, 'conv55')
         input_data = common.convolutional(input_data, (1, 1, 1024,  512), self.trainable, 'conv56')
+        
+        if args.aspp_FLAG:
+            input_data_fpn2 = input_data
+            input_data = tf.concat([input_data,layer1], axis=-1)
 
         conv_lobj_branch = common.convolutional(input_data, (3, 3, 512, 1024), self.trainable, name='conv_lobj_branch')
         conv_lbbox = common.convolutional(conv_lobj_branch, (1, 1, 1024, 3*(self.num_class + 5)),
                                           trainable=self.trainable, name='conv_lbbox', activate=False, bn=False)
-
-        input_data = common.convolutional(input_data, (1, 1,  512,  256), self.trainable, 'conv57')
+        if args.aspp_FLAG:
+            input_data = common.convolutional(input_data_fpn2, (1, 1,  512,  256), self.trainable, 'conv57')
+        else:
+            input_data = common.convolutional(input_data, (1, 1,  512,  256), self.trainable, 'conv57')
         input_data = common.upsample(input_data, name='upsample0', method=self.upsample_method)
 
         with tf.compat.v1.variable_scope('route_1'):
             input_data = tf.concat([input_data, route_2], axis=-1)
+
+        if args.aspp_FLAG:
+            layer2=tf.compat.v1.layers.conv2d(input_data,256,3,strides=1, padding='same',dilation_rate=12)
+            layer2=tf.compat.v1.layers.conv2d(layer2,256,1,strides=1, padding='same')
+            layer2=tf.compat.v1.layers.conv2d(layer2,256,1,strides=1, padding='same')
 
         input_data = common.convolutional(input_data, (1, 1, 768, 256), self.trainable, 'conv58')
         input_data = common.convolutional(input_data, (3, 3, 256, 512), self.trainable, 'conv59')
@@ -99,15 +147,27 @@ class YOLOV3(object):
         input_data = common.convolutional(input_data, (3, 3, 256, 512), self.trainable, 'conv61')
         input_data = common.convolutional(input_data, (1, 1, 512, 256), self.trainable, 'conv62')
 
+        if args.aspp_FLAG:
+            input_data_fpn3 = input_data
+            input_data = tf.concat([input_data,layer2], axis=-1)
+
         conv_mobj_branch = common.convolutional(input_data, (3, 3, 256, 512),  self.trainable, name='conv_mobj_branch' )
         conv_mbbox = common.convolutional(conv_mobj_branch, (1, 1, 512, 3*(self.num_class + 5)),
                                           trainable=self.trainable, name='conv_mbbox', activate=False, bn=False)
 
-        input_data = common.convolutional(input_data, (1, 1, 256, 128), self.trainable, 'conv63')
+        if args.aspp_FLAG:
+            input_data = common.convolutional(input_data_fpn3, (1, 1, 256, 128), self.trainable, 'conv63')
+        else:
+            input_data = common.convolutional(input_data, (1, 1, 256, 128), self.trainable, 'conv63')
         input_data = common.upsample(input_data, name='upsample1', method=self.upsample_method)
 
         with tf.compat.v1.variable_scope('route_2'):
             input_data = tf.concat([input_data, route_1], axis=-1)
+
+        if args.aspp_FLAG:
+            layer3=tf.compat.v1.layers.conv2d(input_data,128,3,strides=1, padding='same',dilation_rate=18)
+            layer3=tf.compat.v1.layers.conv2d(layer3,128,1,strides=1, padding='same')
+            layer3=tf.compat.v1.layers.conv2d(layer3,128,1,strides=1, padding='same')
 
         input_data = common.convolutional(input_data, (1, 1, 384, 128), self.trainable, 'conv64')
         input_data = common.convolutional(input_data, (3, 3, 128, 256), self.trainable, 'conv65')
@@ -115,11 +175,14 @@ class YOLOV3(object):
         input_data = common.convolutional(input_data, (3, 3, 128, 256), self.trainable, 'conv67')
         input_data = common.convolutional(input_data, (1, 1, 256, 128), self.trainable, 'conv68')
 
+        if args.aspp_FLAG:
+            input_data = tf.concat([input_data,layer3], axis=-1)
+
         conv_sobj_branch = common.convolutional(input_data, (3, 3, 128, 256), self.trainable, name='conv_sobj_branch')
         conv_sbbox = common.convolutional(conv_sobj_branch, (1, 1, 256, 3*(self.num_class + 5)),
                                           trainable=self.trainable, name='conv_sbbox', activate=False, bn=False)
 
-        return conv_lbbox, conv_mbbox, conv_sbbox, recovery_loss
+        return conv_lbbox, conv_mbbox, conv_sbbox, recovery_loss,end_points
 
     def decode(self, conv_output, anchors, stride):
         """
@@ -283,5 +346,8 @@ class YOLOV3(object):
             recovery_loss = self.recovery_loss
 
         return giou_loss, conf_loss, prob_loss, recovery_loss
+
+    def get_endpoints(self):
+        return self.end_points
 
 

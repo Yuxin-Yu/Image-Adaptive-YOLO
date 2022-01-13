@@ -1,4 +1,0 @@
-person 131 54 191 177
-motorcycle 128 99 195 177
-person 51 90 80 148
-motorcycle 51 111 81 155

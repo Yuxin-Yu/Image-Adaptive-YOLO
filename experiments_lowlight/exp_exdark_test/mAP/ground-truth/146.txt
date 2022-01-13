@@ -1,4 +1,0 @@
-bicycle 269 314 495 524
-bicycle 104 304 334 567
-bicycle 5 351 201 599
-bicycle 649 260 800 359

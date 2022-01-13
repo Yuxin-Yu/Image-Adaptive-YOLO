@@ -1,5 +1,0 @@
-bicycle 771 317 1015 657
-bicycle 637 346 827 489
-bicycle 157 365 283 467
-bicycle 322 363 401 447
-motorbike 4 331 149 489

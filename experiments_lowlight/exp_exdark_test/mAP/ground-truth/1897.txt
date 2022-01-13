@@ -1,9 +1,0 @@
-dog 276 180 432 288
-person 217 86 287 279
-person 287 83 339 211
-person 345 74 498 196
-person 119 83 197 246
-person 61 90 132 250
-person 10 91 69 221
-person 33 38 62 112
-person 9 44 34 107

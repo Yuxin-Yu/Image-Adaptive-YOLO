@@ -1,4 +1,0 @@
-person 681 615 775 764
-person 875 596 944 708
-motorcycle 682 657 774 794
-motorcycle 873 633 945 728

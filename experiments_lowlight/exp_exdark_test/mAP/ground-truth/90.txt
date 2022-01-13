@@ -1,4 +1,0 @@
-bicycle 106 245 190 337
-motorbike 29 130 79 172
-motorbike 88 147 128 198
-car 83 111 148 151
