@@ -6,6 +6,11 @@ data/gdataset
 data/ExDark
 data/RTTS
 
+#experiments
+experiments_atrw/
+experiments_gdataset/
+experiments_orman/
+
 #checkpoint
 experiments/exp_101/checkpoint/*
 experiments_lowlight/exp_58/checkpoint/*
