@@ -5,11 +5,13 @@ data/VOCdevkit-dark
 data/gdataset
 data/ExDark
 data/RTTS
+data/atrw
+data/orman-lighter
 
 #experiments
-experiments_atrw/
-experiments_gdataset/
-experiments_orman/
+experiments_atrw/*
+experiments_gdataset/*
+experiments_orman/*
 
 #checkpoint
 experiments/exp_101/checkpoint/*
