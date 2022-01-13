@@ -1,0 +1,20 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 1 files
+Detected 0 issues that require attention
+--------------------------------------------------------------------------------
+================================================================================
+Detailed log follows:
+
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'stf_demo.py'
+ outputting to 'stf_demo.py'
+--------------------------------------------------------------------------------
+
+21:2: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+24:5: INFO: Renamed 'tf.variable_scope' to 'tf.compat.v1.variable_scope'
+42:5: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+43:9: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+--------------------------------------------------------------------------------
+
