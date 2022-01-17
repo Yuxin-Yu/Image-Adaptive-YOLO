@@ -13,7 +13,7 @@ from mymodule.modules import *
 
 class YOLOV3(object):
     """Implement tensoflow yolov3 here"""
-    def __init__(self, input_data, trainable, input_data_clean):
+    def __init__(self, input_data, trainable, input_data_clean,brightness_aver):
 
         self.trainable        = trainable
         self.classes          = utils.read_class_names(cfg.YOLO.CLASSES)
@@ -28,7 +28,7 @@ class YOLOV3(object):
 
 
         try:
-            self.conv_lbbox, self.conv_mbbox, self.conv_sbbox, self.recovery_loss,self.end_points = self.__build_nework(input_data, self.isp_flag, input_data_clean)
+            self.conv_lbbox, self.conv_mbbox, self.conv_sbbox, self.recovery_loss,self.end_points = self.__build_nework(input_data, self.isp_flag, input_data_clean,brightness_aver)
         except:
             raise NotImplementedError("Can not build up yolov3 network!")
 
@@ -41,7 +41,9 @@ class YOLOV3(object):
         with tf.compat.v1.variable_scope('pred_lbbox'):
             self.pred_lbbox = self.decode(self.conv_lbbox, self.anchors[2], self.strides[2])
 
-    def __build_nework(self, input_data, isp_flag, input_data_clean):
+    
+
+    def __build_nework(self, input_data, isp_flag, input_data_clean,brightness_aver):
 
         filtered_image_batch = input_data
         self.filter_params = input_data
@@ -49,29 +51,121 @@ class YOLOV3(object):
         end_points = {}
 
         if isp_flag:
-            with tf.compat.v1.variable_scope('extract_parameters_2'):
-                input_data = tf.image.resize(input_data, [256, 256], method=tf.image.ResizeMethod.BILINEAR)
-                filter_features = common.extract_parameters_2(input_data, cfg, self.trainable)
+            if args.filter_bank_FLAG:
+                with tf.compat.v1.variable_scope('extract_parameters'):
+                    def emu_night_parameter(input_data,filtered_image_batch,cfg,trainable):
+                        filter_features_night = common.extract_parameters_2(input_data, cfg,trainable)
+                        filters = cfg.filters
+                        filters = [x(input_data, cfg) for x in filters]
+                        filter_parameters = []
+                        for j, filter in enumerate(filters):
+                            with tf.compat.v1.variable_scope('filter_%d' % j):
+                                print('    creating night filter:', j, 'name:', str(filter.__class__), 'abbr.',
+                                    filter.get_short_name())
+                                print('      filter_features:', filter_features_night.shape)
 
-            # filter_features = tf.random_normal([1, 10], 0.5, 0.1)
+                                filtered_image_batch, filter_parameter = filter.apply(
+                                    filtered_image_batch, filter_features_night)
+                                filter_parameters.append(filter_parameter)
+                                print('      output:', filtered_image_batch.shape)
+                        #self.filter_params_night = filter_parameters
+                        return filtered_image_batch
+                    
+                    def Nonefun(filtered_image_batch):
+                        return filtered_image_batch
+                    def emu_explosive_parameter(input_data,filtered_image_batch,cfg,trainable):
+                        filter_features_explosive = common.extract_parameters_3(input_data, cfg,trainable)
+                        filters = cfg.filters
+                        filters = [x(input_data, cfg) for x in filters]
+                        filter_parameters = []
+                        for j, filter in enumerate(filters):
+                            with tf.compat.v1.variable_scope('filter_%d' % j):
+                                print('    creating explosive filter:', j, 'name:', str(filter.__class__), 'abbr.',
+                                    filter.get_short_name())
+                                print('      filter_features:', filter_features_explosive.shape)
 
-            filters = cfg.filters
-            filters = [x(input_data, cfg) for x in filters]
-            filter_parameters = []
-            for j, filter in enumerate(filters):
-                with tf.compat.v1.variable_scope('filter_%d' % j):
-                    print('    creating filter:', j, 'name:', str(filter.__class__), 'abbr.',
-                          filter.get_short_name())
-                    print('      filter_features:', filter_features.shape)
+                                filtered_image_batch, filter_parameter = filter.apply(
+                                    filtered_image_batch, filter_features_explosive)
+                                filter_parameters.append(filter_parameter)
+                                print('      output:', filtered_image_batch.shape)
+                        #self.filter_params_night = filter_parameters
+                        return filtered_image_batch
+                    def switch_parameter(input_data,filtered_image_batch,cfg,trainable,brightness_mean):
+                        filtered_image_batch = tf.cond(brightness_mean <=168,lambda : Nonefun(filtered_image_batch),\
+                            lambda : emu_explosive_parameter(input_data,filtered_image_batch,cfg,trainable))
+                        return filtered_image_batch
+                    #brightness_mean = np.mean(input_data)
+                    brightness_mean = brightness_aver[0]
+                    
+                    input_data = tf.image.resize(input_data, [256, 256], method=tf.image.ResizeMethod.BILINEAR)
+                    filtered_image_batch = tf.cond(brightness_mean < 90,lambda : emu_night_parameter(input_data,filtered_image_batch,cfg,self.trainable),\
+                        lambda :switch_parameter(input_data,filtered_image_batch,cfg,self.trainable,brightness_mean))
+                    '''
+                    if brightness_mean < 90: #night
+                        filter_features_night = common.extract_parameters_2(input_data, cfg, self.trainable)
+                        filters = cfg.filters
+                        filters = [x(input_data, cfg) for x in filters]
+                        filter_parameters = []
+                        for j, filter in enumerate(filters):
+                            with tf.compat.v1.variable_scope('filter_%d' % j):
+                                print('    creating night filter:', j, 'name:', str(filter.__class__), 'abbr.',
+                                    filter.get_short_name())
+                                print('      filter_features:', filter_features_night.shape)
 
-                    filtered_image_batch, filter_parameter = filter.apply(
-                        filtered_image_batch, filter_features)
-                    filter_parameters.append(filter_parameter)
-                    filter_imgs_series.append(filtered_image_batch)
+                                filtered_image_batch, filter_parameter = filter.apply(
+                                    filtered_image_batch, filter_features_night)
+                                filter_parameters.append(filter_parameter)
+                                filter_imgs_series.append(filtered_image_batch)
 
 
-                    print('      output:', filtered_image_batch.shape)
-            self.filter_params = filter_parameters
+                                print('      output:', filtered_image_batch.shape)
+                        self.filter_params = filter_parameters
+                    elif brightness_mean > 168: #explosive
+                        filter_features_explosive = common.extract_parameters_3(input_data, cfg, self.trainable)
+                        filters = cfg.filters
+                        filters = [x(input_data, cfg) for x in filters]
+                        filter_parameters = []
+                        for j, filter in enumerate(filters):
+                            with tf.compat.v1.variable_scope('filter_%d' % j):
+                                print('    creating explosive filter:', j, 'name:', str(filter.__class__), 'abbr.',
+                                    filter.get_short_name())
+                                print('      filter_features:', filter_features_explosive.shape)
+
+                                filtered_image_batch, filter_parameter = filter.apply(
+                                    filtered_image_batch, filter_features_explosive)
+                                filter_parameters.append(filter_parameter)
+                                filter_imgs_series.append(filtered_image_batch)
+
+                                print('      output:', filtered_image_batch.shape)
+                        self.filter_params = filter_parameters
+                    else: #daytime
+                        pass
+                    '''
+            else:
+
+                with tf.compat.v1.variable_scope('extract_parameters_2'):
+                    input_data = tf.image.resize(input_data, [256, 256], method=tf.image.ResizeMethod.BILINEAR)
+                    filter_features = common.extract_parameters_2(input_data, cfg, self.trainable)
+
+                # filter_features = tf.random_normal([1, 10], 0.5, 0.1)
+
+                filters = cfg.filters
+                filters = [x(input_data, cfg) for x in filters]
+                filter_parameters = []
+                for j, filter in enumerate(filters):
+                    with tf.compat.v1.variable_scope('filter_%d' % j):
+                        print('    creating filter:', j, 'name:', str(filter.__class__), 'abbr.',
+                            filter.get_short_name())
+                        print('      filter_features:', filter_features.shape)
+
+                        filtered_image_batch, filter_parameter = filter.apply(
+                            filtered_image_batch, filter_features)
+                        filter_parameters.append(filter_parameter)
+                        filter_imgs_series.append(filtered_image_batch)
+
+
+                        print('      output:', filtered_image_batch.shape)
+                self.filter_params = filter_parameters
         self.image_isped = filtered_image_batch
         self.filter_imgs_series = filter_imgs_series
 

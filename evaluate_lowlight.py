@@ -13,7 +13,14 @@ from core.yolov3_lowlight import YOLOV3
 from core.config_lowlight import args
 import random
 import time
-
+import os
+ 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+config = tf.compat.v1.ConfigProto(allow_soft_placement = True)
+gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction = 0.4)
+config.gpu_options.allow_growth = True
+ 
+sess0 = tf.compat.v1.InteractiveSession(config = config)
 tf.compat.v1.disable_eager_execution()
 
 exp_folder = os.path.join(args.exp_dir, 'exp_{}'.format(args.exp_num))
@@ -45,6 +52,7 @@ class YoloTest(object):
         self.write_image_path = cfg.TEST.WRITE_IMAGE_PATH
         self.show_label       = cfg.TEST.SHOW_LABEL
         self.isp_flag = cfg.YOLO.ISP_FLAG
+        self.brightness_aver = np.zeros(cfg.TEST.BATCH_SIZE)
 
         with tf.compat.v1.name_scope('input'):
             self.input_data = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
@@ -52,7 +60,7 @@ class YoloTest(object):
             self.input_data_clean   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
 
 
-        model = YOLOV3(self.input_data, self.trainable, self.input_data_clean)
+        model = YOLOV3(self.input_data, self.trainable, self.input_data_clean,self.brightness_aver)
         self.pred_sbbox, self.pred_mbbox, self.pred_lbbox, self.image_isped, self.isp_params = \
             model.pred_sbbox, model.pred_mbbox, model.pred_lbbox, model.image_isped,model.filter_params
 
@@ -66,12 +74,14 @@ class YoloTest(object):
         self.saver = tf.compat.v1.train.Saver(ema_obj.variables_to_restore())
         self.saver.restore(self.sess, self.weight_file)
 
-    def predict(self, image, image_name):
+    def predict(self, image, image_name,brightness_aver):
 
         org_image = np.copy(image)
         org_h, org_w, _ = org_image.shape
         image_data = utils.image_preporcess(image, [self.input_size, self.input_size])
         image_data = image_data[np.newaxis, ...]
+
+        self.brightness_aver = brightness_aver
 
         pred_sbbox, pred_mbbox, pred_lbbox, image_isped, isp_param = self.sess.run(
             [self.pred_sbbox, self.pred_mbbox, self.pred_lbbox, self.image_isped, self.isp_params],
@@ -122,6 +132,7 @@ class YoloTest(object):
                 image_path = annotation[0]
                 image_name = image_path.split('/')[-1]
                 image = cv2.imread(image_path)
+                brightness_aver = np.mean(image)
 
 
                 bbox_data_gt = np.array([list(map(int, box.split(','))) for box in annotation[1:]])
@@ -147,8 +158,11 @@ class YoloTest(object):
                 predict_result_path = os.path.join(predicted_dir_path, str(num) + '.txt')
                 # bboxes_pr, image_isped = self.predict(image, image_name)
                 t1 = time.time()
-                bboxes_pr, image_isped = self.predict(image, image_name)
+                bboxes_pr, image_isped = self.predict(image, image_name,brightness_aver)
                 time_total += time.time() - t1
+
+                brightness_text = "brightness:" + str(np.mean(image_isped))
+                cv2.putText(image_isped, brightness_text, (100,100), cv2.FONT_HERSHEY_SIMPLEX,0.75, (0, 0, 255), 2, lineType=cv2.LINE_AA)
 
                 if self.write_image:
                     if self.isp_flag:

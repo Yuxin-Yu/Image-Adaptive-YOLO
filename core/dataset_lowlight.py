@@ -63,14 +63,14 @@ class Dataset(object):
             batch_sbboxes = np.zeros((self.batch_size, self.max_bbox_per_scale, 4))
             batch_mbboxes = np.zeros((self.batch_size, self.max_bbox_per_scale, 4))
             batch_lbboxes = np.zeros((self.batch_size, self.max_bbox_per_scale, 4))
-
+            batch_brightness_aver = np.zeros(self.batch_size)
             num = 0
             if self.batch_count < self.num_batchs:
                 while num < self.batch_size:
                     index = self.batch_count * self.batch_size + num
                     if index >= self.num_samples: index -= self.num_samples
                     annotation = self.annotations[index]
-                    image, bboxes = self.parse_annotation(annotation)
+                    image, bboxes,brightness_aver = self.parse_annotation(annotation)
                     label_sbbox, label_mbbox, label_lbbox, sbboxes, mbboxes, lbboxes = self.preprocess_true_boxes(bboxes)
 
                     batch_image[num, :, :, :] = image
@@ -80,10 +80,11 @@ class Dataset(object):
                     batch_sbboxes[num, :, :] = sbboxes
                     batch_mbboxes[num, :, :] = mbboxes
                     batch_lbboxes[num, :, :] = lbboxes
+                    batch_brightness_aver[num] = brightness_aver
                     num += 1
                 self.batch_count += 1
                 return batch_image, batch_label_sbbox, batch_label_mbbox, batch_label_lbbox, \
-                       batch_sbboxes, batch_mbboxes, batch_lbboxes
+                       batch_sbboxes, batch_mbboxes, batch_lbboxes,batch_brightness_aver
             else:
                 self.batch_count = 0
                 np.random.shuffle(self.annotations)
@@ -150,6 +151,7 @@ class Dataset(object):
         if not os.path.exists(image_path):
             raise KeyError("%s does not exist ... " %image_path)
         image = np.array(cv2.imread(image_path))
+        brightness_aver = np.mean(image)
         # print('*****************read image***************************')
         bboxes = np.array([list(map(lambda x: int(float(x)), box.split(','))) for box in line[1:]])
 
@@ -159,7 +161,7 @@ class Dataset(object):
             image, bboxes = self.random_translate(np.copy(image), np.copy(bboxes))
 
         image, bboxes = utils.image_preporcess(np.copy(image), [self.train_input_size, self.train_input_size], np.copy(bboxes))
-        return image, bboxes
+        return image, bboxes,brightness_aver
 
     def bbox_iou(self, boxes1, boxes2):
 

@@ -64,6 +64,8 @@ class YoloTrain(object):
         config.gpu_options.allow_growth = True
         self.sess = tf.compat.v1.Session(config=config)
         self.end_points = {}
+        self.brightness_aver = np.zeros(cfg.TRAIN.BATCH_SIZE)
+        
         # self.sess                = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 
         with tf.compat.v1.name_scope('define_input'):
@@ -80,9 +82,10 @@ class YoloTrain(object):
             self.input_data_clean   = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_data')
 
             self.trainable     = tf.compat.v1.placeholder(dtype=tf.bool, name='training')
+            
 
         with tf.compat.v1.name_scope("define_loss"):
-            self.model = YOLOV3(self.input_data, self.trainable, self.input_data_clean)
+            self.model = YOLOV3(self.input_data, self.trainable, self.input_data_clean,self.brightness_aver)
             #t_variables = tf.compat.v1.trainable_variables()
             #print("t_variables", t_variables)
             self.end_points = self.model.get_endpoints()
@@ -222,6 +225,7 @@ class YoloTrain(object):
                                 self.trainable: True,
                             })
                     else:
+                        self.brightness_aver = train_data[7]
                         _, summary, train_step_loss, global_step_val = self.sess.run(
                             [train_op, self.write_op, self.loss, self.global_step], feed_dict={
                                 self.input_data: train_data[0],

@@ -11,12 +11,13 @@ parser.add_argument('--epoch_second_stage', dest='epoch_second_stage', type=int,
 parser.add_argument('--use_gpu', dest='use_gpu', type=int, default=1, help='gpu flag, 1 for GPU and 0 for CPU')
 parser.add_argument('--checkpoint_dir', dest='ckpt_dir', default='checkpoint', help='models are saved here')
 parser.add_argument('--gpu_id', dest='gpu_id', type=str, default='0', help='if use gpu, use gpu device id')
-parser.add_argument('--ISP_FLAG', dest='ISP_FLAG', type=bool, default=False, help='whether use isp')
-parser.add_argument('--pre_train', dest='pre_train', default='NULL', help='the path of pretrained models if is not null. not used for now')
+parser.add_argument('--ISP_FLAG', dest='ISP_FLAG', type=bool, default=True, help='whether use isp')
+parser.add_argument('--pre_train', dest='pre_train', default='./experiments_orman/exp_filter_bank/checkpoint/yolov3_test_loss=15.6851.ckpt-17', help='the path of pretrained models if is not null. not used for now')
 parser.add_argument('--lowlight_FLAG', dest='lowlight_FLAG', type=bool, default=False, help='whether use Hybrid data training')
 parser.add_argument('--grayimage_FLAG', dest='grayimage_FLAG', type=bool, default=False, help='Whether to use single-channel gray image to train and test')
 parser.add_argument('--aspp_FLAG', dest='aspp_FLAG', type=bool, default=False, help='Whether to use aspp module')
 parser.add_argument('--aspp_FLAG_ser', dest='aspp_FLAG_ser', type=bool, default=False, help='Whether to use serial aspp module')
+parser.add_argument('--filter_bank_FLAG', dest='filter_bank_FLAG', type=bool, default=True, help='Whether to use filter bank module')
 if switch_num==0:
     parser.add_argument('--exp_num', dest='exp_num', type=str, default='58', help='current experiment number')
     parser.add_argument('--exp_dir', dest='exp_dir', default='./experiments_lowlight', help='models are saved here')
@@ -37,10 +38,10 @@ elif switch_num==2:  #orman
     parser.add_argument('--exp_num', dest='exp_num', type=str, default='0', help='current experiment number')
     parser.add_argument('--exp_dir', dest='exp_dir', default='./experiments_orman', help='models are saved here')
     parser.add_argument('--train_path', dest='train_path', nargs='*', default='./data/gdataset/orman/train.txt', help='folder of the training data')
-    parser.add_argument('--test_path', dest='test_path', nargs='*', default='./data/orman-lighter/test.txt', help='folder of the training data')
+    parser.add_argument('--test_path', dest='test_path', nargs='*', default='./data/gdataset/orman/test.txt', help='folder of the training data')
     parser.add_argument('--class_name', dest='class_name', nargs='*', default='./data/classes/orman.names', help='folder of the training data')
     parser.add_argument('--WRITE_IMAGE_PATH', dest='WRITE_IMAGE_PATH', nargs='*', default='./experiments_orman/exp_0/detection_results/', help='folder of the training data')
-    parser.add_argument('--WEIGHT_FILE', dest='WEIGHT_FILE', nargs='*', default='./experiments_orman/exp_dce_yolov3/checkpoint/yolov3_test_loss=4.1329.ckpt-19', help='folder of the training data')
+    parser.add_argument('--WEIGHT_FILE', dest='WEIGHT_FILE', nargs='*', default='./experiments_orman/exp_filter_bank/checkpoint/yolov3_test_loss=9.8121.ckpt-3', help='folder of the training data')
 else:
     parser.add_argument('--exp_num', dest='exp_num', type=str, default='0', help='current experiment number')
     parser.add_argument('--exp_dir', dest='exp_dir', default='./experiments_atrw', help='models are saved here')
@@ -135,7 +136,7 @@ __C.YOLO.ISP_FLAG            = args.ISP_FLAG
 __C.TRAIN                       = edict()
 
 __C.TRAIN.ANNOT_PATH            = args.train_path
-__C.TRAIN.BATCH_SIZE            = 2
+__C.TRAIN.BATCH_SIZE            = 1
 __C.TRAIN.INPUT_SIZE            = [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 __C.TRAIN.DATA_AUG              = True
 __C.TRAIN.LEARN_RATE_INIT       = 1e-4
@@ -151,7 +152,7 @@ __C.TRAIN.INITIAL_WEIGHT        = args.pre_train
 __C.TEST                        = edict()
 
 __C.TEST.ANNOT_PATH             = args.test_path
-__C.TEST.BATCH_SIZE             = 2
+__C.TEST.BATCH_SIZE             = 1
 __C.TEST.INPUT_SIZE             = 544
 __C.TEST.DATA_AUG               = False
 __C.TEST.WRITE_IMAGE            = True

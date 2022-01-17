@@ -75,6 +75,36 @@ def extract_parameters_2(net, cfg, trainable):
         weights_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"))
     return filter_features
 
+def extract_parameters_3(net, cfg, trainable):
+    output_dim = cfg.num_filter_parameters
+    print('extract_parameters_3 CNN:')
+    channels = 16
+    print('    ', str(net.get_shape()))
+    net = convolutional(net, filters_shape=(3, 3, 3, channels), trainable=trainable, name='ex_explosive_conv0',
+                        downsample=True, activate=True, bn=False)
+    net = convolutional(net, filters_shape=(3, 3, channels, 2*channels), trainable=trainable, name='ex_explosive_conv1',
+                        downsample=True, activate=True, bn=False)
+    net = convolutional(net, filters_shape=(3, 3, 2*channels, 2*channels), trainable=trainable, name='ex_explosive_conv2',
+                        downsample=True, activate=True, bn=False)
+    net = convolutional(net, filters_shape=(3, 3, 2*channels, 2*channels), trainable=trainable, name='ex_explosive_conv3',
+                        downsample=True, activate=True, bn=False)
+    net = convolutional(net, filters_shape=(3, 3, 2*channels, 2*channels), trainable=trainable, name='ex_explosive_conv4',
+                        downsample=True, activate=True, bn=False)
+    net = tf.reshape(net, [-1, 2048])
+    features = tf_slim.fully_connected(
+        net,
+        64,
+        scope='explosive_fc1',
+        activation_fn=lrelu,
+        weights_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"))
+    filter_features = tf_slim.fully_connected(
+        features,
+        output_dim,
+        scope='explosive_fc2',
+        activation_fn=None,
+        weights_initializer=tf.compat.v1.keras.initializers.VarianceScaling(scale=1.0, mode="fan_avg", distribution="uniform"))
+    return filter_features
+
 def convolutional(input_data, filters_shape, trainable, name, downsample=False, activate=True, bn=True):
 
     with tf.compat.v1.variable_scope(name):
